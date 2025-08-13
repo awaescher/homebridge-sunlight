@@ -112,7 +112,7 @@ class SunAzimuthAccessory {
     // Sun is in relevant azimuth and altitude range, lets check daylight and clouds
     if (newState && apikey) {
       let overcast = this.platform.getWeatherOvercast();
-      let temperatureDegreeCelsius = this.platform.getWeatherTemperaturCelsius();
+      let temperatureDegreeCelsius = Math.round(this.platform.getWeatherTemperaturCelsius());
 
       if (enableWeatherIntegration) {
         const isOvercastAcceptable = overcast <= highestAcceptableOvercast

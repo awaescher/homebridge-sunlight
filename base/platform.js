@@ -1,5 +1,3 @@
-const request = require('request');
-
 const SunAzimuthAccessory = require('./accessory');
 
 let homebridge;
@@ -141,7 +139,7 @@ class SunAzimuthPlatform {
     return value;
   };
 
-  getWeather() {
+  async getWeather() {
     const { log, config } = this;
 
     if (this.checkingWeather)
@@ -149,37 +147,30 @@ class SunAzimuthPlatform {
 
     this.checkingWeather = true;
 
-    let p = new Promise((resolve, reject) => {
+    const url = 'https://api.openweathermap.org/data/2.5/weather?appid=' + config.apikey + '&units=metric&lat=' + config.lat + '&lon=' + config.long;
+    if (config.debugLog)
+      log("Checking weather: %s", url);
 
-      var url = 'http://api.openweathermap.org/data/2.5/weather?appid=' + config.apikey + '&units=metric&lat=' + config.lat + '&lon=' + config.long;
+    let responseBody;
+    try {
+      const response = await fetch(url);
+      responseBody = await response.text();
+
       if (config.debugLog)
-        log("Checking weather: %s", url);
+        log("Server response:", responseBody);
 
-      request(url, function (error, response, responseBody) {
-        if (error) {
-          log("HTTP get weather function failed: %s", error.message);
-          this.checkingWeather = false;
-          reject(error);
-        } else {
-          try {
-            if (config.debugLog)
-              log("Server response:", responseBody);
+      this.cachedWeatherObj = JSON.parse(responseBody);
 
-            this.cachedWeatherObj = JSON.parse(responseBody);
-
-            log(`Temperature: ${this.getWeatherTemperaturCelsius()}°C, overcast (cloud state): ${this.getWeatherOvercast()}%`);
-
-            resolve(response.statusCode);
-
-            this.checkingWeather = false;
-          } catch (error2) {
-            log("Getting Weather failed: %s", error2, responseBody);
-            this.checkingWeather = false;
-            reject(error2);
-          }
-        }
-      }.bind(this))
-    })
+      log(`Temperature: ${this.getWeatherTemperaturCelsius()}°C, overcast (cloud state): ${this.getWeatherOvercast()}%`);
+    } catch (error) {
+      if (responseBody === undefined) {
+        log("HTTP get weather function failed: %s", error.message);
+      } else {
+        log("Getting Weather failed: %s", error, responseBody);
+      }
+    } finally {
+      this.checkingWeather = false;
+    }
   };
 }
 
